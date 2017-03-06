@@ -100,7 +100,7 @@
       (let* ((input (read-line))
                (string-tokens (string-tokenize input))
                (tokens (map string->symbol string-tokens)))
-         (let ((response (lookup id tokens)))
+         (let ((response (lookup id tokens )))
             (cond ((eq? #f response)
                     (format #t "huh? I didn't understand that! ")
                     (loop id))

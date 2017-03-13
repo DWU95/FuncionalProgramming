@@ -31,23 +31,44 @@
        (format #t "Huh ?\n"))))
   (command)) ;; To execute the command
 
+;; Creating the objects
+(define objects
+  '((1 "a silver dagger")
+    (2 "a gold coin")))
+
 ;; Describe the room 'descriptions' within as association list
 (define descriptions
   '((1 "You are in the lobby.")
     (2 "You are in the hallway.")
     (3 "You are in a swamp.")))
 
-;; Define some actions which will include into our decisiontable structure
-(define look
-  '(((directions) look) ((look) look) ((examine room) look)))
+(define objectdb (make-hash))
+(define inventorydb (make-hash))
 
-(define quit
-  '(((exit game) quit) ((quit game) quit) ((exit) quit) ((quit) quit)))
+(define (add-object db id object)
+   (if (hash-has-key? db id)
+        (let ((record (hash-ref db id)))
+           (hash-set! db id (cons object record)))
+        (hash-set! db id (cons object empty))))
+
+(define (add-objects db)
+   (for-each
+     (λ (r)
+        (add-object db (first r) (second r))) objects))
+
+(add-objects objectdb)
+
+;; Define some actions which will include into our decisiontable structure
+(define look '(((directions) look) ((look) look) ((examine room) look)))
+(define quit '(((exit game) quit) ((quit game) quit) ((exit) quit) ((quit) quit) ((end) quit)))
+(define pick '(((get) pick) ((pickup) pick) ((retrieve) pick) ((pick) pick) ((obtain) pick)))
+(define drop '(((put) drop) ((drop) drop) ((place) drop) ((remove) drop) ((release) drop)))
+(define inventory '(((inventory) inventory) ((bag) inventory) ((items) inventory)))
 
 ;; Quasiquote is used to apply special properties
 ;; Unquote-splicing is used because we need to remove the extra list that would be generated had we just used unquote
 (define actions
-  `(,@look ,@quit))
+  `(,@look ,@quit ,@pick ,@drop ,@inventory))
 
 (define decisiontable
   `((1 ((north) 2) ((north west) 3) ,@actions)
@@ -59,20 +80,20 @@
 ;; The outputted result is not user friendly at the moment. The list needs to be converted back into strings
 (define (get-directions id)
   ;; List decisiontable assigns the id of the decisiontable searched to record
-   (let ((record (assq id decisiontable)))
-      (let* ((result (filter (λ (n) (number? (second n))) (cdr record)))
-             (n (length result)))
-        ;; Conditions to check the directions
-        (cond ((= 0 n)
-               (printf "You appear to have entered a room with no exits. \n"))
-              ((= 1 n)
-               (printf "You can see an exit to the ~a.\n" (slist->string (caar result))))
-              (else
-               (let* ((losym (map (λ (x) (car x)) result))
-                      (lostr (map (λ (x) (slist->string x)) losym)))
-                 (printf "You can see exits to the ~a.\n" (string-join lostr " and "))))))))
-         ;;(for-each (λ (direction) (printf "~a" (first direction))) result))
-      ;;(printf "\n")))
+  (let ((record (assq id decisiontable)))
+    (let* ((result (filter (λ (n) (number? (second n))) (cdr record)))
+           (n (length result)))
+      ;; Conditions to check the directions
+      (cond ((= 0 n)
+             (printf "You appear to have entered a room with no exits. \n"))
+            ((= 1 n)
+             (printf "You can see an exit to the ~a.\n" (slist->string (caar result))))
+            (else
+             (let* ((losym (map (λ (x) (car x)) result))
+                    (lostr (map (λ (x) (slist->string x)) losym)))
+               (printf "You can see exits to the ~a.\n" (string-join lostr " and "))))))))
+;;(for-each (λ (direction) (printf "~a" (first direction))) result))
+;;(printf "\n")))
 
 ;; Maps the paramter to the list of atoms then joins it
 (define (slist->string l)
@@ -135,19 +156,19 @@
         (printf "> "))
     (let* ((input (read-line))
            (string-tokens (string-tokenize input))
-           (tokens (map string->symbol strings-token)))
+           (tokens (map string->symbol string-tokens)))
       (let ((response (lookup id tokens )))
         (cond ((number? response)
                (loop response #t))
               ((eq? #f response)
                (format #t "Huh? I didn't understand that!\n")
-               (loop if #f))
-               ((eq? reponse 'look)
-                (get-directions id)
-                (loop id #f))
-               ((eq? reponse 'quit )
-                (format #t "So Long\n")
-                (exit)))))))
+               (loop id #f))
+              ((eq? response 'look)
+               (get-directions id)
+               (loop id #f))
+              ((eq? response 'quit )
+               (format #t "So Long\n")
+               (exit)))))))
 
 
 (define (recommend initial-id)

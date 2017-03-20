@@ -1,0 +1,8 @@
+Game ideas
+
+-Only be able to access a room if the user has a specific item
+	- the game will check if the required item in in the users inventory by matching the ID
+	- If the user has the item, they will access to room as usual
+	- If the user does not have the item, a message will notify the user that the room is locked.
+
+-display to the user which rooms they can go into

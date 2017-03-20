@@ -42,8 +42,10 @@
     (2 "You are in the hallway.")
     (3 "You are in a swamp.")))
 
+;; Creating the database for the objects and the inventory
 (define objectdb (make-hash))
 (define inventorydb (make-hash))
+
 
 (define (add-object db id object)
    (if (hash-has-key? db id)
@@ -51,12 +53,24 @@
            (hash-set! db id (cons object record)))
         (hash-set! db id (cons object empty))))
 
+;; The add-objects function will load what is in our object data into an objects database.
 (define (add-objects db)
    (for-each
      (λ (r)
         (add-object db (first r) (second r))) objects))
 
 (add-objects objectdb)
+
+;; This function is used to display either what objects
+;; are in the room or in our inventory
+(define (display-objects db id)
+  (when (hash-has-key? db id)
+    (let* ((record (hash-ref db id))
+           (output (string-join record " and ")))
+      (when (not (equal? output ""))
+        (if (eq? id 'inventory)
+            (printf "You are carrying ~a.\n" output)
+            (printf "You can see ~a.\n" output))))))
 
 ;; Define some actions which will include into our decisiontable structure
 (define look '(((directions) look) ((look) look) ((examine room) look)))

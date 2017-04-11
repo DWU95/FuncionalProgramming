@@ -4,12 +4,13 @@
 (require srfi/1) ;; This srfi works with pairs and lists
 (require srfi/13) ;; This srfi works with String Libraries
 (require srfi/48) ;; Intermediate Format Strings
-
+     
 (define (assq-ref assqlist id)
   (cdr (assq id assqlist)))
 
 (define (assv-ref assqlist id)
   (cdr (assv id assqlist)))
+
 
 (define (command) ;; To execute the function
   (let* ((input (read-line)) ;; Allows user input
@@ -72,10 +73,11 @@
 (define pick '(((get) pick) ((pickup) pick) ((retrieve) pick) ((pick) pick) ((obtain) pick)))
 (define drop '(((put) drop) ((drop) drop) ((place) drop) ((remove) drop) ((release) drop)))
 (define inventory '(((inventory) inventory) ((bag) inventory) ((items) inventory)))
+(define help '((help) help))
 
 ;; Quasiquote is used to apply special properties
 ;; Unquote-splicing is used because we need to remove the extra list that would be generated had we just used unquote
-(define actions `(,@look ,@quit ,@pick ,@drop ,@inventory))
+(define actions `(,@look ,@quit ,@pick ,@drop ,@inventory ,@help))
 
 (define decisiontable `((1 ((north) 2) ((north west) 8) ((north east) 9) ,@actions)
                         (2 ((south) 1) ((north) 7) ((west) 10) ,@actions)
@@ -135,7 +137,7 @@
 (define (get-directions id)
   ;; List decisiontable assigns the id of the decisiontable searched to record
   (let* ((record (assq id decisiontable))
-         (assign (assq id rooms)))
+         (assign (assv id rooms)))
     (let* ((result (filter (λ (n) (number? (second n))) (cdr record)))
            (n (length result)))
       ;; Conditions to check the directions
@@ -144,9 +146,15 @@
             ((= 1 n)
              (printf "You can see an exit to the ~a.\n" (slist->string (caar result))))
             (else
-             (let* ((losym (map (λ (x) (car x)) result))
-                    (lostr (map (λ (x) (slist->string x)) losym)))
-               (printf "You can see exits to the ~a.\n" (string-join lostr " and "))))))))
+             (let* (;;(losym (map (λ (x) (car x)) result))
+                   ;; (lojnt (map (λ (x) (being (cons (car x) ) result
+                   ;; (lonum (map (λ (x) (second x)) result))
+                    (losym (map (λ (x) (begin (cons (car x) (cdr (assv (second x) rooms))))) result)) 
+                    (lostr (map (λ (x)
+                                  (string-join (list (symbol->string (caar x))
+                                                     (second x) ""))) losym)))   
+                    ;;(lostr (map (λ (x) (slist->string x)) losym)))
+               (printf "You can see exits to the ~a.\n" (string-join lostr "and "))))))))
 ;;(for-each (λ (direction) (printf "~a" (first direction))) result))
 ;;(printf "\n")))
 
@@ -248,6 +256,10 @@
 (define (display-description id)
   (printf "~a\n" (get-description id)))
 
+(define (help-window)
+  (printf "\nCommands:\n
+
+
 (define (startgame initial-id)
   (let loop ((id initial-id) (description #t))
     (when description
@@ -274,7 +286,10 @@
                (loop id #f))
               ((eq? response 'inventory)
                (display-inventory)
-               (loop id #f))              
+               (loop id #f))
+              ((eq? response 'help)
+               (help-window)
+               (loop id #f))
               ((eq? response 'quit)
                (printf "So Long, and Thanks for All the Fish...\n")
                (exit)))))))
